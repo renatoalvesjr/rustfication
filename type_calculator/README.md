@@ -10,14 +10,15 @@ This project is a simple calculator designed to help study and understand types 
 
 ## Getting Started
 
-To get started with the project, clone the repository and run the following commands:
+To get started with the project, run the following commands to clone the project and run the project:
 
 ```sh
+git clone https://github.com/renatoalvesjr/rustfication.git
 cd rustfication/type_calculator
 cargo build
-cargo run
+cargo run 1 + 2
 ```
 
 ## Usage
 
-Use the calculator to perform basic arithmetic operations of integer numbers and explore how Rust handles different types.
+The accepted arguments are integers and an operator following this format: `<int1> <operator> <int2>`, separated by spaces.
