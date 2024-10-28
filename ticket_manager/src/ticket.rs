@@ -25,12 +25,9 @@ impl Ticket {
     pub fn description(&self) -> &str {
         &self.description
     }
-    pub fn status(&self) -> &str {
-        match &self.status {
-            Status::ToDo { .. } => "To-do",
-            Status::InProgress { .. } => "In Progress",
-            Status::Done { .. } => "Done",
-        }
+    pub fn status(&self) -> String {
+        //list the todo to_string, in progress to_string, done to_string
+        self.status.to_string()
     }
     pub fn set_title(&mut self, title: String) {
         self.title = validate_title(title);
@@ -52,8 +49,40 @@ impl Ticket {
         }
     }
 
-    fn assigned_to(&self) -> Option<&str> {
-        if let Status::InProgress { assigned_to } = &self.status { Some(assigned_to) } else { None }
+    pub fn assign_to(&mut self, assigned_to: String) {
+        match &mut self.status {
+            Status::InProgress { assigned_to: assignee } => {
+                *assignee = assigned_to;
+            }
+            _ => panic!("Ticket is not in progress"),
+        }
+    }
+
+    pub fn set_estimated_hours(&mut self, estimated_hours: u16) {
+        match &mut self.status {
+            Status::ToDo { estimated_hours: hours } => {
+                *hours = estimated_hours;
+            }
+            _ => panic!("Ticket is not in to-do"),
+        }
+    }
+
+    pub fn set_logged_hours(&mut self, logged_hours: u16) {
+        match &mut self.status {
+            Status::Done { logged_hours: hours, .. } => {
+                *hours = logged_hours;
+            }
+            _ => panic!("Ticket is not done"),
+        }
+    }
+
+    pub fn set_resolved_by(&mut self, resolved_by: String) {
+        match &mut self.status {
+            Status::Done { resolved_by: resolver, .. } => {
+                *resolver = resolved_by;
+            }
+            _ => panic!("Ticket is not done"),
+        }
     }
 }
 //Custom equality implementation
