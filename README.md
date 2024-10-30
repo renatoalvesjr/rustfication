@@ -8,6 +8,8 @@ This repository is a collection of various Rust learning projects. It serves as 
 2. **Factorial** - Implements a simple factorial function using recursion.
 3. **Ticket Manager** - A JIRA-like ticket manager that utilizes enums and structs, capable of performing simple CRUD operations.
 4. **Hamming Distance** - Calculates the Hamming Distance between two strings of the same length using file reading and string manipulation.
+5. **Word Counter** - Read files line by line and print the lines with the word inserted.
+6. **Warp API** - A very simplistic API build with Warp.
 
 ## Getting Started
 
