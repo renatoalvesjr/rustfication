@@ -1,0 +1,13 @@
+[package]
+name = "actix_auth"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-session = { version = "0.10.1", features = ["cookie-session"] }
+actix-web = "4"
+sha3 = "0.10.8"
+sha2 = "0.10.8"
+jwt = "0.16.0"
+serde = "1.0.214"
+hmac = "0.12.1"
