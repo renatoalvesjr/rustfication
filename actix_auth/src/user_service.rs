@@ -3,14 +3,14 @@ use crate::tokens::sign_token;
 
 #[derive(Clone)]
 pub struct User {
-    id: i32,
+    pub id: i32,
     pub username: String,
     password: String,
     pub email: String,
-    full_name: String,
+    pub full_name: String,
 }
 
-struct UserList {
+pub struct UserList {
     users: Vec<User>,
 }
 
