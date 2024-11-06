@@ -1,4 +1,4 @@
-use actix_session::{storage::CookieSessionStore, Session, SessionMiddleware};
+use actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use actix_web::cookie::Key;
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 
@@ -40,11 +40,14 @@ async fn hello(data: web::Data<&str>) -> impl Responder {
 }
 
 async fn login() -> impl Responder {
-    println!("Hello from Login");
-    HttpResponse::Ok().body("Hello from Login")
+    let token =
+        user_control::login(String::from("emai1@email.com"), String::from("password1")).await;
+    match token {
+        Some(token) => HttpResponse::Ok().body(token),
+        None => HttpResponse::Unauthorized().body("Unauthorized"),
+    }
 }
 
 async fn register() -> impl Responder {
-    println!("Hello from Register");
     HttpResponse::Ok().body("Hello from Register")
 }
