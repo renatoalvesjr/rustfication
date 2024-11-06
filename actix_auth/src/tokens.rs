@@ -1,4 +1,4 @@
-use crate::user_service::User;
+use crate::user_model::Model as User;
 use actix_web::Error;
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};

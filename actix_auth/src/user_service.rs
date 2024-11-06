@@ -1,55 +1,36 @@
+use crate::database::conn;
 use crate::encrypt::hash_func;
 use crate::tokens::sign_token;
+use crate::user_model::{ActiveModel, Column, Entity, Model};
+use sea_orm::entity::prelude::*;
+use sea_orm::ActiveValue::{NotSet, Set, Unchanged};
 
-#[derive(Clone)]
-pub struct User {
-    pub id: i32,
-    pub username: String,
-    pub password: String,
-    pub email: String,
-    pub full_name: String,
-}
-
-pub struct UserList {
-    users: Vec<User>,
-}
-
-pub async fn get_all_users() -> UserList {
-    let user_list = UserList {
-        users: vec![User {
-            id: 1,
-            username: "user1".to_string(),
-            password: hash_func("password1").to_string(),
-            email: "email01@email.com".to_string(),
-            full_name: "User One".to_string(),
-        }],
-    };
-    user_list
-}
-
-pub async fn get_user_by_username(username: &str) -> Option<User> {
-    let users = get_all_users().await;
-    for user in users.users {
-        if user.username == username {
-            return Some(user);
-        }
+async fn get_user_by_username(username: &str) -> Option<Model> {
+    match Entity::find()
+        .filter(Column::Username.contains(username))
+        .one(&conn().await)
+        .await
+    {
+        Ok(user) => Some(user)?,
+        Err(_) => None,
     }
-    None
 }
 
-pub async fn get_user_by_email(email: &str) -> Option<User> {
-    let users = get_all_users().await;
-    for user in users.users {
-        if user.email == email {
-            return Some(user);
-        }
+async fn get_user_by_email(email: &str) -> Option<Model> {
+    match Entity::find()
+        .filter(Column::Email.contains(email))
+        .one(&conn().await)
+        .await
+    {
+        Ok(user) => Some(user)?,
+        Err(_) => None,
     }
-    None
 }
 
 pub async fn authenticate_user(username: String, password: String) -> Option<String> {
     let mut user_login = get_user_by_username(&username).await;
     if user_login.is_none() {
+        println!("User not found by username, trying email");
         user_login = get_user_by_email(&username).await;
     }
 
@@ -63,4 +44,22 @@ pub async fn authenticate_user(username: String, password: String) -> Option<Str
         }
         None => None,
     }
+}
+
+pub async fn register(
+    username: String,
+    password: String,
+    email: String,
+    full_name: Option<String>,
+) -> Option<String> {
+    let new_user: ActiveModel = ActiveModel {
+        id: NotSet,
+        username: Set(username.clone()),
+        password: Set(hash_func(&password)),
+        email: Set(email),
+        full_name: Set(full_name),
+    };
+    Entity::insert(new_user).exec(&conn().await).await.unwrap();
+    authenticate_user(username, password).await;
+    Some("User registered".to_string())
 }
