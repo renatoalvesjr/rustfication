@@ -1,5 +1,5 @@
 use crate::tokens;
-use crate::user_service::authenticate_user;
+use crate::user_service::{self, authenticate_user};
 
 pub async fn login(login: String, password: String) -> Option<String> {
     let token = authenticate_user(login, password).await;
@@ -11,4 +11,13 @@ pub async fn login(login: String, password: String) -> Option<String> {
 
 pub async fn authentication(token: String) -> bool {
     tokens::token_valid(token)
+}
+
+pub async fn register(
+    username: String,
+    password: String,
+    email: String,
+    full_name: Option<String>,
+) -> Option<String> {
+    user_service::register(username, password, email, full_name).await
 }

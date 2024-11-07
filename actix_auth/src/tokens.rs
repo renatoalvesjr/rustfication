@@ -3,6 +3,7 @@ use actix_web::Error;
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
+use std::env;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -21,10 +22,9 @@ pub fn sign_token(user: User) -> Result<String, Error> {
         email: user.email,
         exp: expiration,
     };
-    let key: EncodingKey = EncodingKey::from_secret(b"Secret-Key");
+    let key: EncodingKey = EncodingKey::from_secret(env::var("SECRET_KEY").unwrap().as_bytes());
     let token = encode(&header, &claims, &key)
         .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
-
     Ok(token)
 }
 

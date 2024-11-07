@@ -1,9 +1,21 @@
+use std::env;
+
 use crate::database::conn;
 use crate::encrypt::hash_func;
 use crate::tokens::sign_token;
 use crate::user_model::{ActiveModel, Column, Entity, Model};
 use sea_orm::entity::prelude::*;
-use sea_orm::ActiveValue::{NotSet, Set, Unchanged};
+use sea_orm::ActiveValue::{NotSet, Set};
+
+#[derive(serde::Deserialize, Debug)]
+pub struct Login {
+    pub username: String,
+    pub password: String,
+}
+
+async fn user_exists(username: &str, email: &str) -> bool {
+    get_user_by_username(username).await.is_some() || get_user_by_email(email).await.is_some()
+}
 
 async fn get_user_by_username(username: &str) -> Option<Model> {
     match Entity::find()
@@ -55,11 +67,15 @@ pub async fn register(
     let new_user: ActiveModel = ActiveModel {
         id: NotSet,
         username: Set(username.clone()),
-        password: Set(hash_func(&password)),
-        email: Set(email),
-        full_name: Set(full_name),
+        password: Set(hash_func(
+            format!("{}{}", env::var("SALT").unwrap_or_default(), &password).as_str(),
+        )),
+        email: Set(email.clone()),
+        full_name: Set(full_name.clone()),
     };
+    if user_exists(&username, &email).await {
+        return Some("User already exists".to_string());
+    }
     Entity::insert(new_user).exec(&conn().await).await.unwrap();
-    authenticate_user(username, password).await;
     Some("User registered".to_string())
 }
