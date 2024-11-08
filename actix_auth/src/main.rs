@@ -1,6 +1,4 @@
-use actix_session::{storage::CookieSessionStore, SessionMiddleware};
-use actix_web::cookie::Key;
-use actix_web::{cookie, get, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{cookie, get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use std::env;
 
 pub mod database;
@@ -16,26 +14,16 @@ async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok();
     let host = env::var("HOST").unwrap();
     let port = env::var("PORT").unwrap().parse::<u16>().unwrap();
-    let secret_key = Key::generate();
 
     HttpServer::new(move || {
         App::new()
-            .wrap(
-                SessionMiddleware::builder(CookieSessionStore::default(), secret_key.clone())
-                    .cookie_secure(false)
-                    .build(),
-            )
-            .app_data(web::Data::new("Actix Web"))
-            // unprotected routes
             .service(
                 web::scope("/user")
                     .route("/login", web::post().to(login))
-                    .route("/register", web::post().to(register))
-                    //protected by login authentication
-                    .route("/profile/{profile_id}", web::get().to(profile)), // .wrap(middleware::SayHi),
+                    .route("/register", web::post().to(register)), // .route("/profile/{profile_id}", web::get().to(profile)),
             )
             .service(hello)
-            .default_service(web::route().to(|| HttpResponse::NotFound()))
+            .default_service(web::route().to(not_found))
     })
     .bind((host, port))?
     .run()
@@ -43,42 +31,38 @@ async fn main() -> std::io::Result<()> {
 }
 
 #[get("/")]
-async fn hello(data: web::Data<&str>) -> impl Responder {
-    let app_data = &data;
-    println!(
-        "Hello from {:?}, {}",
-        app_data,
-        env::var("DATABASE_URL").unwrap()
-    );
-    HttpResponse::Ok().body(format!(
-        "Hello from {:?}, {}",
-        app_data,
-        env::var("DATABASE_URL").unwrap()
-    ))
+async fn hello() -> impl Responder {
+    println!("Hello from /");
+    HttpResponse::Ok().body(format!("Hello from /"))
 }
 
-#[derive(serde::Deserialize)]
-struct ProfileId {
-    profile_id: String,
+async fn not_found() -> impl Responder {
+    HttpResponse::NotFound().body("Wrong route sailor!")
 }
 
-async fn profile(path: web::Path<ProfileId>) -> impl Responder {
-    let auth_token =
-        user_control::authentication(cookie::Cookie::named("auth-token").value().to_string()).await;
-    println!("Profile request: {:?}", auth_token);
-    match auth_token {
-        true => HttpResponse::Ok().body(format!("Hello from Profile {}", path.profile_id)),
-        false => HttpResponse::Unauthorized().body("Unauthorized"),
-    }
-}
+// #[derive(serde::Deserialize)]
+// struct ProfileId {
+//     profile_id: String,
+// }
+
+// async fn profile(path: web::Path<String>) -> impl Responder {
+//     println!("Authenticating profile request");
+//     let cookie = cookie::Cookie::println!("Cookie: {:?}", cookie);
+//     // let session = user_control::authentication(cookie).await;
+//     let session = true;
+//     println!("Authenticated: {}", session);
+//     match session {
+//         true => HttpResponse::Ok().body(format!("Hello from Profile {}", path)),
+//         false => HttpResponse::Unauthorized().body("Unauthorized"),
+//     }
+// }
 
 async fn login(login: web::Json<user_service::Login>) -> impl Responder {
-    println!("Login request: {:?}", login);
     let token =
         user_control::login(String::from(&login.username), String::from(&login.password)).await;
     match token {
         Some(token) => HttpResponse::Ok()
-            .cookie(cookie::Cookie::new("auth-token", token.clone()))
+            .cookie(cookie::Cookie::new("session", token.clone()))
             .body(format!("Login Successful\n{}", &token)),
 
         None => HttpResponse::Unauthorized().body("Unauthorized"),

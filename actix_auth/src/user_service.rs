@@ -1,7 +1,7 @@
 use std::env;
 
 use crate::database::conn;
-use crate::encrypt::hash_func;
+use crate::encrypt::{password_hash, password_verify};
 use crate::tokens::sign_token;
 use crate::user_model::{ActiveModel, Column, Entity, Model};
 use sea_orm::entity::prelude::*;
@@ -42,17 +42,18 @@ async fn get_user_by_email(email: &str) -> Option<Model> {
 pub async fn authenticate_user(username: String, password: String) -> Option<String> {
     let mut user_login = get_user_by_username(&username).await;
     if user_login.is_none() {
-        println!("User not found by username, trying email");
         user_login = get_user_by_email(&username).await;
     }
 
     match user_login {
         Some(user) => {
-            if hash_func(&password) == user.password {
-                Some(sign_token(user).unwrap())
-            } else {
-                None
+            if password_verify(
+                format!("{}{}", env::var("SALT").unwrap_or_default(), &password).as_str(),
+                &user.password,
+            ) {
+                return Some(sign_token(user).unwrap());
             }
+            None
         }
         None => None,
     }
@@ -67,7 +68,7 @@ pub async fn register(
     let new_user: ActiveModel = ActiveModel {
         id: NotSet,
         username: Set(username.clone()),
-        password: Set(hash_func(
+        password: Set(password_hash(
             format!("{}{}", env::var("SALT").unwrap_or_default(), &password).as_str(),
         )),
         email: Set(email.clone()),
@@ -78,4 +79,16 @@ pub async fn register(
     }
     Entity::insert(new_user).exec(&conn().await).await.unwrap();
     Some("User registered".to_string())
+}
+
+pub async fn change_full_name(new_name: &str, user_id: i32) -> Result<(), sea_orm::error::DbErr> {
+    let db = conn().await;
+    let user: Option<ActiveModel> = Entity::find_by_id(user_id).one(&db).await?.map(Into::into);
+
+    if let Some(mut user) = user {
+        user.full_name = Set(Some(new_name.to_string()));
+        user.update(&db).await?;
+    }
+
+    Ok(())
 }
